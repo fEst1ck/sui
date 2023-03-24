@@ -1291,7 +1291,7 @@ impl ProtocolConfig {
                 object_runtime_max_num_cached_objects_system_tx: Some(1000 * 16),
                 object_runtime_max_num_store_entries: Some(1000),
                 object_runtime_max_num_store_entries_system_tx: Some(1000 * 16),
-                base_tx_cost_fixed: Some(110_000),
+                base_tx_cost_fixed: Some(2_000),
                 package_publish_cost_fixed: Some(1_000),
                 base_tx_cost_per_byte: Some(0),
                 package_publish_cost_per_byte: Some(80),
@@ -1323,7 +1323,7 @@ impl ProtocolConfig {
                 address_from_u256_cost_base: Some(52),
 
                 // `dynamic_field` module
-                // Cost params for the Move native function `hash_type_and_key<K: copy + drop + store>(parent: address, k: K): address`                
+                // Cost params for the Move native function `hash_type_and_key<K: copy + drop + store>(parent: address, k: K): address`
                 dynamic_field_hash_type_and_key_cost_base: Some(100),
                 dynamic_field_hash_type_and_key_type_cost_per_byte: Some(2),
                 dynamic_field_hash_type_and_key_value_cost_per_byte: Some(2),

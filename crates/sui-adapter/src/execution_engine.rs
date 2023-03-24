@@ -172,7 +172,7 @@ fn execute_transaction<
     let is_system = transaction_kind.is_system_tx();
     // At this point no charge has been applied yet
     debug_assert!(
-        u64::from(gas_status.gas_used()) == 0
+        gas_status.gas_used() == 0
             && gas_status.storage_rebate() == 0
             && gas_status.storage_gas_units() == 0,
         "No gas charges must be applied yet"

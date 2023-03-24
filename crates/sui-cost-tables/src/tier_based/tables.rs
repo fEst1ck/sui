@@ -5,10 +5,13 @@ use std::collections::BTreeMap;
 
 use move_binary_format::errors::{PartialVMError, PartialVMResult};
 
-use move_core_types::gas_algebra::{AbstractMemorySize, InternalGas, NumArgs, NumBytes};
+use move_core_types::gas_algebra::InternalGas;
 use move_core_types::language_storage::ModuleId;
 
-use move_core_types::vm_status::StatusCode;
+use move_core_types::{
+    gas_algebra::{AbstractMemorySize, NumArgs, NumBytes},
+    vm_status::StatusCode,
+};
 use move_vm_types::gas::{GasMeter, SimpleInstruction};
 use move_vm_types::loaded_data::runtime_types::Type;
 use move_vm_types::views::{TypeView, ValueView};
@@ -73,7 +76,7 @@ impl<'a> GasStatus<'a> {
     ///
     /// Charge for every operation and fail when there is no more gas to pay for operations.
     /// This is the instantiation that must be used when executing a user script.
-    pub fn new(cost_table: &'a CostTable, gas_left: Gas) -> Self {
+    pub fn new(cost_table: &'a CostTable, gas_left: u64) -> Self {
         let (stack_height_current_tier_mult, stack_height_next_tier_start) =
             cost_table.stack_height_tier(0);
         let (stack_size_current_tier_mult, stack_size_next_tier_start) =
@@ -81,7 +84,7 @@ impl<'a> GasStatus<'a> {
         let (instructions_current_tier_mult, instructions_next_tier_start) =
             cost_table.instruction_tier(0);
         Self {
-            gas_left: gas_left.to_unit(),
+            gas_left: InternalGas::new(gas_left),
             cost_table,
             charge: true,
             stack_height_high_water_mark: 0,
@@ -226,7 +229,7 @@ impl<'a> GasStatus<'a> {
                     .checked_mul(pushes)
                     .ok_or_else(|| PartialVMError::new(StatusCode::ARITHMETIC_OVERFLOW))?,
             )
-            .total_internal(),
+            .total(),
         )?;
 
         // self.decrease_stack_size(decr_size);
@@ -244,8 +247,7 @@ impl<'a> GasStatus<'a> {
         self.gas_left.to_unit_round_down()
     }
 
-    /// Charge a given amount of gas and fail if not enough gas units are left.
-    pub fn deduct_gas(&mut self, amount: InternalGas) -> PartialVMResult<()> {
+    fn deduct_gas_internal(&mut self, amount: InternalGas) -> PartialVMResult<()> {
         if !self.charge {
             return Ok(());
         }
@@ -260,6 +262,11 @@ impl<'a> GasStatus<'a> {
                 Err(PartialVMError::new(StatusCode::OUT_OF_GAS))
             }
         }
+    }
+
+    /// Charge a given amount of gas and fail if not enough gas units are left.
+    pub fn deduct_gas(&mut self, amount: u64) -> PartialVMResult<()> {
+        self.deduct_gas_internal(InternalGas::new(amount))
     }
 
     pub fn set_metering(&mut self, enabled: bool) {
@@ -350,7 +357,7 @@ impl<'b> GasMeter for GasStatus<'b> {
         // `charge_native_function_before_execution` call.
         self.charge(0, pushes, 0, size_increase.into(), 0)?;
         // Now charge the gas that the native function told us to charge.
-        self.deduct_gas(amount)
+        self.deduct_gas_internal(amount)
     }
 
     fn charge_native_function_before_execution(
@@ -570,7 +577,7 @@ impl<'b> GasMeter for GasStatus<'b> {
     ) -> PartialVMResult<()> {
         // We will perform `num_args` number of pops.
         let num_args = args.len() as u64;
-        // The amount of data on the stack stays contstant except we have some extra metadata for
+        // The amount of data on the stack stays constant except we have some extra metadata for
         // the vector to hold the length of the vector.
         self.charge(1, 1, num_args, VEC_SIZE.into(), 0)
     }
