@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["transfer_sui"],"opaque":[""],"static":["CALLSITE","META"]};
